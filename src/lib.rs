@@ -140,9 +140,9 @@ pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, Stri
 	if !empty {
 		if valid_line {
 			if !making.is_empty() {
-				right.push(Factor::Name(replace(&mut making, String::new())))
+				right.push(Factor::Name(making))
 			}
-			ret.push((replace(&mut left, None).unwrap(), replace(&mut right, Vec::new())))
+			ret.push((left.unwrap(), right))
 		} else {
 			return Err("unexpected terminating".to_string())
 		}
