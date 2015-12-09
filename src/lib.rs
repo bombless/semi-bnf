@@ -18,11 +18,47 @@ fn is_whitespace(c: char) -> bool {
 }
 
 fn is_ident_char(c: char) -> bool {
-	(b'a' .. b'z').any(|x| x as char == c)
+	c >= 'a' && c <= 'z'
 }
 
 #[test]
-pub fn test() {
+fn check_pass() {
+	let rules = r#"
+		factor = "1"
+		term = factor "*" factor
+	"#;
+	
+	let s = Session::new(rules).unwrap();
+	assert!(s.check_orphan());
+	assert!(s.check_root())
+}
+
+
+#[test]
+fn check_violent_root() {
+	let rules = r#"
+		foo = "0"
+		bar = "1"
+	"#;
+	
+	let s = Session::new(rules).unwrap();
+	assert!(s.check_orphan());
+	assert!(!s.check_root())
+}
+
+#[test]
+fn check_violent_orphan() {
+	let rules = r#"
+		foo = bar
+	"#;
+	
+	let s = Session::new(rules).unwrap();
+	assert!(!s.check_orphan());
+	assert!(s.check_root())
+}
+
+#[test]
+fn test() {
 	assert_eq!(Ok(vec![("a".to_string(), vec![Factor::Terminate("*".to_string())])]), get_rules(r#"
 		a = "*"
 	"#));
@@ -151,7 +187,44 @@ pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, Stri
 }
 
 impl<'a> Session<'a> {
-	fn new(_: &'a str) -> () {
+	pub fn new(src: &'a str) -> Result<Session<'a>, String> {
+		Ok(Session {
+			source: src,
+			rules: try!(get_rules(src))
+		})
+	}
+	
+	/// This function assume that all non-terminates on the right-hand side
+	/// also appear on the left-hand side
+	pub fn check_root(&self) -> bool {
+		use ::std::collections::HashMap;
+		let mut rhs_name_set = HashMap::new();
+		let mut lhs_vec = Vec::new();
 		
+		for &(ref left, ref items) in &self.rules {
+			lhs_vec.push(left);
+			for item in items {
+				if let &Factor::Name(ref name) = item {
+					rhs_name_set.insert(name, ());
+				}
+			}
+		}
+		println!("{:?}\n{:?}", rhs_name_set, lhs_vec);
+		return 1 == lhs_vec.into_iter().filter(|x| { println!("checking {}", x); !rhs_name_set.contains_key(x)}).count()
+	}
+	
+	pub fn check_orphan(&self) -> bool {
+		use ::std::collections::HashMap;
+		let lhs_set = self.rules.iter().fold(HashMap::new(), |mut acc, x| {
+			acc.insert(&x.0, ());
+			acc
+		});
+		self.rules.iter().all(|&(_, ref items)| {
+			items.iter().all(|item| if let &Factor::Name(ref name) = item {
+				lhs_set.contains_key(name)
+			} else {
+				true
+			})
+		})
 	}
 }
