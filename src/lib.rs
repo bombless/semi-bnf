@@ -1,8 +1,10 @@
-pub fn run(s: &str) -> String {
+use ::std::collections::HashMap;
+
+pub fn run(_: &str) -> String {
 	unimplemented!()
 }
 
-struct Session<'a> {
+pub struct Session<'a> {
 	source: &'a str,
 	rules: Vec<(String, Vec<Factor>)>
 }
@@ -76,6 +78,18 @@ fn test() {
 		factor = "1"
 		term = factor "*" factor
 	"#))
+}
+
+#[test]
+fn test_twoway_mapping() {
+	let mut id2name = HashMap::new();
+	id2name.insert(1, "foo");
+	let mut name2id = HashMap::new();
+	name2id.insert("foo", 1);
+	let ref rules = get_rules(r#"foo="1""#).unwrap();
+	let mappings: TwoWayMapping = rules.into();
+	assert_eq!(name2id, mappings.name2id);
+	assert_eq!(id2name, mappings.id2name)
 }
 
 pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, String> {
@@ -197,7 +211,6 @@ impl<'a> Session<'a> {
 	/// This function assume that all non-terminates on the right-hand side
 	/// also appear on the left-hand side
 	pub fn check_root(&self) -> bool {
-		use ::std::collections::HashMap;
 		let mut rhs_name_set = HashMap::new();
 		let mut lhs_vec = Vec::new();
 		
@@ -214,7 +227,6 @@ impl<'a> Session<'a> {
 	}
 	
 	pub fn check_orphan(&self) -> bool {
-		use ::std::collections::HashMap;
 		let lhs_set = self.rules.iter().fold(HashMap::new(), |mut acc, x| {
 			acc.insert(&x.0, ());
 			acc
@@ -226,5 +238,36 @@ impl<'a> Session<'a> {
 				true
 			})
 		})
+	}
+}
+
+struct TwoWayMapping<'a> {
+	name2id: HashMap<&'a str, usize>,
+	id2name: HashMap<usize, &'a str>
+}
+
+type Rules = Vec<(String, Vec<Factor>)>;
+
+impl<'a> From<&'a Rules> for TwoWayMapping<'a> {
+	fn from(rules: &'a Rules) -> TwoWayMapping<'a> {
+		let names: HashMap<&str, _> = rules.iter().fold(HashMap::new(), |mut acc, &(ref left, ref right)| {
+			acc.insert(left, ());
+			for item in right {
+				if let &Factor::Name(ref name) = item {
+					acc.insert(name, ());
+				}
+			}
+			acc
+		});
+		let mut id2name = HashMap::new();
+		let mut name2id = HashMap::new();
+		for (id, (name, _)) in names.into_iter().enumerate() {
+			id2name.insert(id, name);
+			name2id.insert(name, id);
+		}
+		TwoWayMapping {
+			id2name: id2name,
+			name2id: name2id
+		}
 	}
 }
