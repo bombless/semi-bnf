@@ -83,9 +83,9 @@ fn test() {
 #[test]
 fn test_twoway_mapping() {
 	let mut id2name = HashMap::new();
-	id2name.insert(1, "foo");
+	id2name.insert(0, "foo");
 	let mut name2id = HashMap::new();
-	name2id.insert("foo", 1);
+	name2id.insert("foo", 0);
 	let ref rules = get_rules(r#"foo="1""#).unwrap();
 	let mappings: TwoWayMapping = rules.into();
 	assert_eq!(name2id, mappings.name2id);
@@ -149,9 +149,13 @@ pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, Stri
 			}
 		}
 		else if c == '=' {
-			if left.is_none() || !making.is_empty() || !right.is_empty() {
+			if (left.is_none() && making.is_empty()) || eq {
 				return Err("`=` occured in wrong place".to_string())
 			} else {
+				if left.is_none() {
+					left = Some(replace(&mut making, String::new()))
+				}
+				assert!(right.is_empty());
 				eq = true
 			}
 		}
