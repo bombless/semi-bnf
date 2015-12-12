@@ -2,3 +2,6 @@
 name = "bnf"
 version = "0.1.0"
 authors = ["York Xiang <bombless@126.com>"]
+
+[dependencies]
+to_default = "0.1"

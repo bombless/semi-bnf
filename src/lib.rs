@@ -1,3 +1,5 @@
+extern crate to_default;
+use to_default::*;
 use ::std::collections::HashMap;
 
 pub fn run(_: &str) -> String {
@@ -93,7 +95,6 @@ fn test_twoway_mapping() {
 }
 
 pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, String> {
-	use std::mem::replace;
 	let mut inside_string = InsideString::NonString;
 	let mut left = None;
 	let mut eq = false;
@@ -115,7 +116,7 @@ pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, Stri
 				match inside_string {
 					InsideString::NonString => inside_string = InsideString::InString,
 					InsideString::InString => {
-						right.push(Factor::Terminate(replace(&mut making, String::new())));
+						right.push(Factor::Terminate(making.to_default()));
 						inside_string = InsideString::NonString
 					}
 					InsideString::Escape => {
@@ -153,7 +154,7 @@ pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, Stri
 				return Err("`=` occured in wrong place".to_string())
 			} else {
 				if left.is_none() {
-					left = Some(replace(&mut making, String::new()))
+					left = Some(making.to_default())
 				}
 				assert!(right.is_empty());
 				eq = true
@@ -166,19 +167,19 @@ pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, Stri
 				return Err("`\\n` occured in wrong place".to_string())
 			} else if !empty {
 				if !making.is_empty() {
-					right.push(Factor::Name(replace(&mut making, String::new())))
+					right.push(Factor::Name(making.to_default()))
 				}
-				ret.push((replace(&mut left, None).unwrap(), replace(&mut right, Vec::new())));
+				ret.push((left.to_default().unwrap(), right.to_default()));
 				eq = false
 			}
 		}
 		else if is_whitespace(c) {
 			if !making.is_empty() {
 				if left.is_none() {
-					left = Some(replace(&mut making, String::new()))
+					left = Some(making.to_default())
 				}
 				else if eq {
-					right.push(Factor::Name(replace(&mut making, String::new())))
+					right.push(Factor::Name(making.to_default()))
 				}
 			}
 		}
