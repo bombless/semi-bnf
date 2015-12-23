@@ -94,6 +94,21 @@ fn test_twoway_mapping() {
 	assert_eq!(id2name, mappings.id2name)
 }
 
+#[test]
+fn test_generator() {
+	let rules = vec![
+		("factor".to_string(), vec![Factor::Terminate(1.to_string())]),
+		("term".to_string(),
+			vec![
+				Factor::Name("factor".to_string()),
+				Factor::Terminate("*".to_string()),
+				Factor::Name("factor".to_string())])
+	];
+	
+	assert_eq!(generate_decl(&rules), "enum Factor {  }\n\
+		enum Term { Factor(Factor), Factor(Factor) }")
+}
+
 pub fn get_rules<'a>(source: &'a str) -> Result<Vec<(String, Vec<Factor>)>, String> {
 	let mut inside_string = InsideString::NonString;
 	let mut left = None;
@@ -252,6 +267,19 @@ struct TwoWayMapping<'a> {
 }
 
 type Rules = Vec<(String, Vec<Factor>)>;
+
+fn generate_decl<'a>(rules: &'a Rules) -> String {
+	fn to_name(name: &str) -> String {
+		name.chars().enumerate().map(|(idx, c)| if idx == 0 { c.to_uppercase().collect() } else { c.to_string() }).collect()
+	}
+	rules.iter().map(|&(ref name, ref rule)| format!("enum {} {{ {} }}", to_name(name), {
+		rule.iter().flat_map(|item| if let &Factor::Name(ref name) = item {
+			Some(to_name(name))
+		} else {
+			None
+		}).map(|x| format!("{}({})", x, x)).collect::<Vec<_>>().join(", ")
+	})).collect::<Vec<_>>().join("\n")
+}
 
 impl<'a> From<&'a Rules> for TwoWayMapping<'a> {
 	fn from(rules: &'a Rules) -> TwoWayMapping<'a> {
