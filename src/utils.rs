@@ -1,5 +1,5 @@
-pub fn plain(s: &str) -> String {
-	format!("fn parse_plain(s: &mut TwoWay) -> Result<(), ()> {{\
+pub fn plain(s: &str, id: usize) -> String {
+	format!("fn parse_plain_id_{}(s: &mut TwoWay) -> Result<(), ()> {{\
 		\n    let ptr = s.ptr();\
 		\n    for c in {:?}.chars() {{\
 		\n        if Some(c) != s.read() {{\
@@ -8,7 +8,7 @@ pub fn plain(s: &str) -> String {
 		\n        }}\
 		\n    }}\
 		\n    Ok(())\
-		\n}}", s)
+		\n}}", id, s)
 }
 
 pub fn indent(s: &str) -> String {
